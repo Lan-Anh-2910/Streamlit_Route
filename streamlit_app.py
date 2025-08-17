@@ -61,16 +61,15 @@ try:
 
         # Vẽ Route nếu bật
         if show_route:
-            colors = px.colors.qualitative.Set2  # bảng màu có sẵn
+            colors = px.colors.qualitative.Set2
             color_map = {file: colors[i % len(colors)] for i, file in enumerate(routes_df["Source_File"].unique())}
         
             for source_file, group in routes_df.groupby("Source_File"):
-                # Sắp xếp theo số trong Name (nếu có), ví dụ "Pole 1", "Pole 2"...
                 group_sorted = group.copy()
                 group_sorted["order"] = group_sorted["Name"].str.extract(r'(\d+)').fillna(0).astype(int)
                 group_sorted = group_sorted.sort_values("order").reset_index(drop=True)
         
-                # Vẽ marker (một trace duy nhất cho tất cả điểm của group này)
+                # Vẽ marker (1 trace duy nhất cho group này)
                 fig.add_trace(go.Scattermapbox(
                     lat=group_sorted["latitude"],
                     lon=group_sorted["longitude"],
@@ -81,17 +80,21 @@ try:
                     name=source_file
                 ))
         
-                # Vẽ từng đoạn nối i -> i+1
+                # Vẽ line: chỉ nối điểm i -> i+1, gom chung thành 1 trace
+                lat_lines = []
+                lon_lines = []
                 for i in range(len(group_sorted) - 1):
-                    fig.add_trace(go.Scattermapbox(
-                        lat=[group_sorted.loc[i, "latitude"], group_sorted.loc[i+1, "latitude"]],
-                        lon=[group_sorted.loc[i, "longitude"], group_sorted.loc[i+1, "longitude"]],
-                        mode="lines",
-                        line=dict(width=2, color=color_map[source_file]),
-                        hoverinfo="skip",   # không cần hover cho line
-                        showlegend=False    # không lặp lại trong legend
-                    ))
-
+                    lat_lines += [group_sorted.loc[i, "latitude"], group_sorted.loc[i+1, "latitude"], None]
+                    lon_lines += [group_sorted.loc[i, "longitude"], group_sorted.loc[i+1, "longitude"], None]
+        
+                fig.add_trace(go.Scattermapbox(
+                    lat=lat_lines,
+                    lon=lon_lines,
+                    mode="lines",
+                    line=dict(width=2, color=color_map[source_file]),
+                    hoverinfo="skip",
+                    showlegend=False
+                ))
 
         fig.update_layout(
             mapbox=dict(

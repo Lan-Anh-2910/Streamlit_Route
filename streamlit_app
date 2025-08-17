@@ -61,29 +61,25 @@ try:
 
         # Vẽ Route nếu bật
         if show_route:
-            route_lat = []
-            route_lon = []
-            filtered_names = filtered_sites["Name"].unique()
+            colors = px.colors.qualitative.Set2  # bảng màu có sẵn
+            color_map = {file: colors[i % len(colors)] for i, file in enumerate(routes_df["Source_File"].unique())}
 
-            for _, route in routes_df.iterrows():
-                site_names = [route["Site1"], route["Site2"], route.get("Site3")]
-                site_names = [name for name in site_names if pd.notna(name) and name in filtered_names]
+            for source_file, group in routes_df.groupby("Source_File"):
+                # Sắp xếp theo số trong Name (nếu có), ví dụ "Pole 1", "Pole 2"...
+                group_sorted = group.copy()
+                group_sorted["order"] = group_sorted["Name"].str.extract(r'(\d+)').fillna(0).astype(int)
+                group_sorted = group_sorted.sort_values("order")
 
-                coords = filtered_sites[filtered_sites["Name"].isin(site_names)][["Latitude", "Longitude"]]
-                if len(coords) >= 2:
-                    route_lat.extend(coords["Latitude"])
-                    route_lon.extend(coords["Longitude"])
-                    route_lat.append(None)
-                    route_lon.append(None)
-
-            if route_lat:
+                # Vẽ tuyến
                 fig.add_trace(go.Scattermapbox(
-                    lat=route_lat,
-                    lon=route_lon,
-                    mode="lines",
-                    line=dict(width=2, color="blue"),
-                    hoverinfo="none",
-                    name="Route"
+                    lat=group_sorted["latitude"],
+                    lon=group_sorted["longitude"],
+                    mode="lines+markers",
+                    line=dict(width=2, color=color_map[source_file]),
+                    marker=dict(size=6, color=color_map[source_file]),
+                    text=group_sorted["Name"] + " (" + source_file + ")",
+                    hoverinfo="text",
+                    name=source_file
                 ))
 
         fig.update_layout(
@@ -93,7 +89,7 @@ try:
                 zoom=5,
                 center=dict(lat=16, lon=107)
             ),
-            legend=dict(title="Site Status"),
+            legend=dict(title="Loại hiển thị", itemsizing="constant"),
             margin=dict(l=0, r=0, t=0, b=0),
             height=700
         )

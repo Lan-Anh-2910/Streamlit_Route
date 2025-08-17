@@ -63,24 +63,26 @@ try:
         if show_route:
             colors = px.colors.qualitative.Set2  # bảng màu có sẵn
             color_map = {file: colors[i % len(colors)] for i, file in enumerate(routes_df["Source_File"].unique())}
-
+        
             for source_file, group in routes_df.groupby("Source_File"):
                 # Sắp xếp theo số trong Name (nếu có), ví dụ "Pole 1", "Pole 2"...
                 group_sorted = group.copy()
                 group_sorted["order"] = group_sorted["Name"].str.extract(r'(\d+)').fillna(0).astype(int)
                 group_sorted = group_sorted.sort_values("order")
-
-                # Vẽ tuyến
-                fig.add_trace(go.Scattermapbox(
-                    lat=group_sorted["latitude"],
-                    lon=group_sorted["longitude"],
-                    mode="lines+markers",
-                    line=dict(width=2, color=color_map[source_file]),
-                    marker=dict(size=6, color=color_map[source_file]),
-                    text=group_sorted["Name"] + " (" + source_file + ")",
-                    hoverinfo="text",
-                    name=source_file
-                ))
+        
+                # Vẽ từng đoạn nối i -> i+1
+                for i in range(len(group_sorted) - 1):
+                    fig.add_trace(go.Scattermapbox(
+                        lat=[group_sorted.iloc[i]["latitude"], group_sorted.iloc[i+1]["latitude"]],
+                        lon=[group_sorted.iloc[i]["longitude"], group_sorted.iloc[i+1]["longitude"]],
+                        mode="lines+markers",
+                        line=dict(width=2, color=color_map[source_file]),
+                        marker=dict(size=6, color=color_map[source_file]),
+                        text=[group_sorted.iloc[i]["Name"] + f" ({source_file})",
+                              group_sorted.iloc[i+1]["Name"] + f" ({source_file})"],
+                        hoverinfo="text",
+                        name=source_file
+                    ))
 
         fig.update_layout(
             mapbox=dict(

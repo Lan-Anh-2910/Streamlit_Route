@@ -86,9 +86,9 @@ try:
                 for i in range(len(group_sorted) - 1):
                     curr = group_sorted.iloc[i]
                     nextp = group_sorted.iloc[i+1]
-        
-                    # nếu cùng Name hoặc là điểm cuối Name này sang đầu Name kế → nối
-                    if curr["Name"] == nextp["Name"] or curr["order"] != nextp["order"]:
+                
+                    # chỉ nối nếu cùng Name
+                    if curr["Name"] == nextp["Name"]:
                         lat_lines += [curr["latitude"], nextp["latitude"], None]
                         lon_lines += [curr["longitude"], nextp["longitude"], None]
         

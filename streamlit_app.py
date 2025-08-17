@@ -68,21 +68,30 @@ try:
                 # Sắp xếp theo số trong Name (nếu có), ví dụ "Pole 1", "Pole 2"...
                 group_sorted = group.copy()
                 group_sorted["order"] = group_sorted["Name"].str.extract(r'(\d+)').fillna(0).astype(int)
-                group_sorted = group_sorted.sort_values("order")
+                group_sorted = group_sorted.sort_values("order").reset_index(drop=True)
+        
+                # Vẽ marker (một trace duy nhất cho tất cả điểm của group này)
+                fig.add_trace(go.Scattermapbox(
+                    lat=group_sorted["latitude"],
+                    lon=group_sorted["longitude"],
+                    mode="markers",
+                    marker=dict(size=6, color=color_map[source_file]),
+                    text=group_sorted["Name"] + " (" + source_file + ")",
+                    hoverinfo="text",
+                    name=source_file
+                ))
         
                 # Vẽ từng đoạn nối i -> i+1
                 for i in range(len(group_sorted) - 1):
                     fig.add_trace(go.Scattermapbox(
-                        lat=[group_sorted.iloc[i]["latitude"], group_sorted.iloc[i+1]["latitude"]],
-                        lon=[group_sorted.iloc[i]["longitude"], group_sorted.iloc[i+1]["longitude"]],
-                        mode="lines+markers",
+                        lat=[group_sorted.loc[i, "latitude"], group_sorted.loc[i+1, "latitude"]],
+                        lon=[group_sorted.loc[i, "longitude"], group_sorted.loc[i+1, "longitude"]],
+                        mode="lines",
                         line=dict(width=2, color=color_map[source_file]),
-                        marker=dict(size=6, color=color_map[source_file]),
-                        text=[group_sorted.iloc[i]["Name"] + f" ({source_file})",
-                              group_sorted.iloc[i+1]["Name"] + f" ({source_file})"],
-                        hoverinfo="text",
-                        name=source_file
+                        hoverinfo="skip",   # không cần hover cho line
+                        showlegend=False    # không lặp lại trong legend
                     ))
+
 
         fig.update_layout(
             mapbox=dict(

@@ -65,11 +65,12 @@ try:
             color_map = {file: colors[i % len(colors)] for i, file in enumerate(routes_df["Source_File"].unique())}
         
             for source_file, group in routes_df.groupby("Source_File"):
+                # Sắp xếp theo Name order (nếu có số trong tên)
                 group_sorted = group.copy()
                 group_sorted["order"] = group_sorted["Name"].str.extract(r'(\d+)').fillna(0).astype(int)
-                group_sorted = group_sorted.sort_values("order").reset_index(drop=True)
+                group_sorted = group_sorted.sort_values(["order"]).reset_index(drop=True)
         
-                # Vẽ marker (1 trace duy nhất cho group này)
+                # Marker cho tất cả điểm
                 fig.add_trace(go.Scattermapbox(
                     lat=group_sorted["latitude"],
                     lon=group_sorted["longitude"],
@@ -80,13 +81,29 @@ try:
                     name=source_file
                 ))
         
-                # Vẽ line: chỉ nối điểm i -> i+1, gom chung thành 1 trace
+                # Nối line theo từng Name
                 lat_lines = []
                 lon_lines = []
-                for i in range(len(group_sorted) - 1):
-                    lat_lines += [group_sorted.loc[i, "latitude"], group_sorted.loc[i+1, "latitude"], None]
-                    lon_lines += [group_sorted.loc[i, "longitude"], group_sorted.loc[i+1, "longitude"], None]
         
+                for name, subgroup in group_sorted.groupby("Name"):
+                    subgroup = subgroup.reset_index(drop=True)
+        
+                    # nối tất cả điểm liên tiếp trong cùng Name
+                    for i in range(len(subgroup) - 1):
+                        lat_lines += [subgroup.loc[i, "latitude"], subgroup.loc[i+1, "latitude"], None]
+                        lon_lines += [subgroup.loc[i, "longitude"], subgroup.loc[i+1, "longitude"], None]
+        
+                    # khi kết thúc 1 Name, nối điểm cuối của Name này với điểm đầu của Name tiếp theo
+                    # (nếu chưa phải là Name cuối cùng)
+                    next_names = group_sorted["Name"].unique()
+                    current_idx = list(next_names).index(name)
+                    if current_idx < len(next_names) - 1:
+                        next_name = next_names[current_idx + 1]
+                        first_next = group_sorted[group_sorted["Name"] == next_name].iloc[0]
+                        lat_lines += [subgroup.iloc[-1]["latitude"], first_next["latitude"], None]
+                        lon_lines += [subgroup.iloc[-1]["longitude"], first_next["longitude"], None]
+        
+                # Add line trace
                 fig.add_trace(go.Scattermapbox(
                     lat=lat_lines,
                     lon=lon_lines,

@@ -59,48 +59,48 @@ try:
                 name=status
             ))
 
-# Vẽ Route nếu bật
-if show_route:
-    colors = px.colors.qualitative.Set2
-    color_map = {file: colors[i % len(colors)] for i, file in enumerate(routes_df["Source_File"].unique())}
-
-    for source_file, group in routes_df.groupby("Source_File"):
-        group_sorted = group.copy()
-        group_sorted["order"] = group_sorted["Name"].str.extract(r'(\d+)').fillna(0).astype(int)
-        group_sorted = group_sorted.sort_values(["order"]).reset_index(drop=True)
-
-        # Marker cho tất cả điểm
-        fig.add_trace(go.Scattermapbox(
-            lat=group_sorted["latitude"],
-            lon=group_sorted["longitude"],
-            mode="markers",
-            marker=dict(size=6, color=color_map[source_file]),
-            text=group_sorted["Name"] + " (" + source_file + ")",
-            hoverinfo="text",
-            name=source_file
-        ))
-
-        lat_lines, lon_lines = [], []
-
-        # duyệt lần lượt các điểm
-        for i in range(len(group_sorted) - 1):
-            curr = group_sorted.iloc[i]
-            nextp = group_sorted.iloc[i+1]
-
-            # nếu cùng Name hoặc là điểm cuối Name này sang đầu Name kế → nối
-            if curr["Name"] == nextp["Name"] or curr["order"] != nextp["order"]:
-                lat_lines += [curr["latitude"], nextp["latitude"], None]
-                lon_lines += [curr["longitude"], nextp["longitude"], None]
-
-        # Add line trace
-        fig.add_trace(go.Scattermapbox(
-            lat=lat_lines,
-            lon=lon_lines,
-            mode="lines",
-            line=dict(width=2, color=color_map[source_file]),
-            hoverinfo="skip",
-            showlegend=False
-        ))
+        # Vẽ Route nếu bật
+        if show_route:
+            colors = px.colors.qualitative.Set2
+            color_map = {file: colors[i % len(colors)] for i, file in enumerate(routes_df["Source_File"].unique())}
+        
+            for source_file, group in routes_df.groupby("Source_File"):
+                group_sorted = group.copy()
+                group_sorted["order"] = group_sorted["Name"].str.extract(r'(\d+)').fillna(0).astype(int)
+                group_sorted = group_sorted.sort_values(["order"]).reset_index(drop=True)
+        
+                # Marker cho tất cả điểm
+                fig.add_trace(go.Scattermapbox(
+                    lat=group_sorted["latitude"],
+                    lon=group_sorted["longitude"],
+                    mode="markers",
+                    marker=dict(size=6, color=color_map[source_file]),
+                    text=group_sorted["Name"] + " (" + source_file + ")",
+                    hoverinfo="text",
+                    name=source_file
+                ))
+        
+                lat_lines, lon_lines = [], []
+        
+                # duyệt lần lượt các điểm
+                for i in range(len(group_sorted) - 1):
+                    curr = group_sorted.iloc[i]
+                    nextp = group_sorted.iloc[i+1]
+        
+                    # nếu cùng Name hoặc là điểm cuối Name này sang đầu Name kế → nối
+                    if curr["Name"] == nextp["Name"] or curr["order"] != nextp["order"]:
+                        lat_lines += [curr["latitude"], nextp["latitude"], None]
+                        lon_lines += [curr["longitude"], nextp["longitude"], None]
+        
+                # Add line trace
+                fig.add_trace(go.Scattermapbox(
+                    lat=lat_lines,
+                    lon=lon_lines,
+                    mode="lines",
+                    line=dict(width=2, color=color_map[source_file]),
+                    hoverinfo="skip",
+                    showlegend=False
+                ))
 
         fig.update_layout(
             mapbox=dict(

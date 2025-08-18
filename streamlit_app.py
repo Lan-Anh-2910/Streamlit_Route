@@ -64,12 +64,17 @@ try:
             colors = px.colors.qualitative.Set2
             color_map = {file: colors[i % len(colors)] for i, file in enumerate(routes_df["Source_File"].unique())}
         
-            for source_file, group in routes_df.groupby("Source_File"):
-                group_sorted = group.copy()
-                group_sorted["order"] = group_sorted["Name"].str.extract(r'(\d+)').fillna(0).astype(int)
-                group_sorted = group_sorted.sort_values(["order"]).reset_index(drop=True)
+            # Làm sạch & ép kiểu cho chắc
+            routes_df["Name"] = routes_df["Name"].astype(str).str.strip()
+            routes_df["latitude"] = pd.to_numeric(routes_df["latitude"], errors="coerce")
+            routes_df["longitude"] = pd.to_numeric(routes_df["longitude"], errors="coerce")
+            routes_df = routes_df.dropna(subset=["latitude", "longitude"])
         
-                # Marker cho tất cả điểm
+            for source_file, group in routes_df.groupby("Source_File"):
+                # ❗ Giữ đúng thứ tự dòng trong file CSV (không sort theo 'order' nữa)
+                group_sorted = group.sort_index()
+        
+                # Marker cho toàn bộ điểm của route này
                 fig.add_trace(go.Scattermapbox(
                     lat=group_sorted["latitude"],
                     lon=group_sorted["longitude"],
@@ -80,19 +85,17 @@ try:
                     name=source_file
                 ))
         
+                # Nối chỉ các cặp điểm kề nhau CÙNG Name
                 lat_lines, lon_lines = [], []
+                names = group_sorted["Name"].to_numpy()
+                lats  = group_sorted["latitude"].to_numpy()
+                lons  = group_sorted["longitude"].to_numpy()
         
-                # duyệt lần lượt các điểm
                 for i in range(len(group_sorted) - 1):
-                    curr = group_sorted.iloc[i]
-                    nextp = group_sorted.iloc[i+1]
-                
-                    # chỉ nối nếu cùng Name
-                    if curr["Name"] == nextp["Name"]:
-                        lat_lines += [curr["latitude"], nextp["latitude"], None]
-                        lon_lines += [curr["longitude"], nextp["longitude"], None]
+                    if names[i] == names[i + 1]:
+                        lat_lines += [lats[i], lats[i + 1], None]
+                        lon_lines += [lons[i], lons[i + 1], None]
         
-                # Add line trace
                 fig.add_trace(go.Scattermapbox(
                     lat=lat_lines,
                     lon=lon_lines,
@@ -101,6 +104,7 @@ try:
                     hoverinfo="skip",
                     showlegend=False
                 ))
+
 
         fig.update_layout(
             mapbox=dict(

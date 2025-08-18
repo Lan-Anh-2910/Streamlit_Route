@@ -75,7 +75,7 @@ try:
                     lon=group_sorted["longitude"],
                     mode="markers",
                     marker=dict(size=6, color=color_map[source_file]),
-                    text=group_sorted["Name"] + " (" + source_file + ")",
+                    text=group_sorted.apply(lambda r: f"Lon: {r['longitude']:.6f}, Lat: {r['latitude']:.6f}", axis=1),
                     hoverinfo="text",
                     name=source_file
                 ))
